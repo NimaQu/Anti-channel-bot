@@ -65,9 +65,7 @@ def bot(app):
 
         args = message.text.split(" ", maxsplit=2)
         if len(args) < 3:
-            reply_message = await message.reply(help_message)
-            await asyncio.sleep(10)
-            await reply_message.delete()
+            await message.reply(help_message)
             return
         key = args[1]
         value = args[2]
