@@ -112,7 +112,7 @@ def bot(app):
                 await reply_message.delete()
                 return
         except ChatAdminRequired:
-            logging.error('群组管理员权限不足，无法操作')
+            logging.error('机器人权限不足，无法操作, 群组 ID:' + str(chat_id))
             return
         except RPCError as e:
             logging.error('rpc error: ' + str(e))
