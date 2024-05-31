@@ -5,6 +5,7 @@ from configparser import ConfigParser
 from pyrogram import Client, filters
 from pyrogram.errors import ChatAdminRequired, RPCError
 from pyrogram.types import (Message)
+from pyrogram.enums import ChatType
 
 from dbhelper import DBHelper
 
@@ -76,17 +77,10 @@ def bot(app):
 
     @app.on_message(filters.group)
     async def group_message(client, message):
-        # 过滤用户消息
-        if bool(message.from_user) and not bool(message.sender_chat):
+        if message.sender_chat is None:
             return
-        # 过滤频道匿名消息
-        if message.chat.id == message.sender_chat.id:
+        if message.sender_chat.type != ChatType.CHANNEL or message.chat.type != ChatType.SUPERGROUP:
             return
-        # 过滤频道附属群组消息
-        if bool(message.forward_from_chat):
-            if message.forward_from_chat.id == message.sender_chat.id:
-                return
-
         chat_id = message.chat.id
         channel_id = message.sender_chat.id
         group_config = get_group_config(chat_id)
