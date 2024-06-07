@@ -75,8 +75,18 @@ def bot(app):
         else:
             await message.reply("配置项设置失败, 请输入 /acset 查看帮助")
 
+    @app.on_message(filters.command("acgm") & filters.group)
+    async def get_message_info(client: Client, message: Message):
+        target_message = message.reply_to_message
+        if target_message is None:
+            return
+        await message.reply(str(target_message))
+
     @app.on_message(filters.group)
     async def group_message(client, message):
+        # debug
+        if "僵尸" in message.text or "清理" in message.text:
+            logging.info(str(message))
         if message.sender_chat is None:
             return
         if message.sender_chat.type != ChatType.CHANNEL or message.chat.type != ChatType.SUPERGROUP:
