@@ -85,8 +85,12 @@ def bot(app):
     @app.on_message(filters.group)
     async def group_message(client, message):
         # debug
+        if "https://t.me/soso" in message.text:
+            logging.info(str(message))
+            await message.delete()
         if "僵尸" in message.text or "清理" in message.text:
             logging.info(str(message))
+        # debug end
         if message.sender_chat is None:
             return
         if message.sender_chat.type != ChatType.CHANNEL or message.chat.type != ChatType.SUPERGROUP:
