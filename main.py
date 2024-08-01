@@ -8,6 +8,7 @@ from pyrogram.types import (Message)
 from pyrogram.enums import ChatType
 
 from dbhelper import DBHelper
+from nyamediamarriot import *
 
 botconfig = ConfigParser()
 botconfig.read('bot.ini', encoding='utf-8')
@@ -19,6 +20,15 @@ db = DBHelper()
 def init_default_config():
     global default_config
     default_config = dict(botconfig.items('config'))
+
+
+def nyamediamarriot_init():
+    def init_room():
+        for i in range(1, 27):
+            for j in range(1, 20):
+                room_number = i * 100 + j
+                rooms[room_number] = Room(room_number)
+    init_room()
 
 
 def get_group_config(chat_id):
@@ -82,15 +92,20 @@ def bot(app):
             return
         await message.reply(str(target_message))
 
+    @app.on_message(filters.chat(chats=[-1001730617795, -1001502675110]))
+    async def nyamedia(client: Client, message: Message):
+        args = message.text.split(' ')
+        if len(args) == 0:
+            return
+        if '/checkin' in args[0]:
+            await handle_checkin(client, message)
+        elif '/reserve' in args[0]:
+            await handle_reservation(client, message)
+        elif '/checkout' in args[0]:
+            await handle_checkout(client, message)
+
     @app.on_message(filters.group)
     async def group_message(client, message):
-        # debug
-        if "https://t.me/soso" in message.text:
-            logging.info(str(message))
-            await message.delete()
-        if "僵尸" in message.text or "清理" in message.text:
-            logging.info(str(message))
-        # debug end
         if message.sender_chat is None:
             return
         if message.sender_chat.type != ChatType.CHANNEL or message.chat.type != ChatType.SUPERGROUP:
@@ -134,6 +149,7 @@ def bot(app):
 def main():
     db.setup()
     init_default_config()
+    nyamediamarriot_init()
     app = Client("Anti channel bot",
                  api_id=botconfig.get('auth', 'api_id'),
                  api_hash=botconfig.get('auth', 'api_hash'),
