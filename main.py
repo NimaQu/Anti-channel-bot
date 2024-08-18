@@ -61,7 +61,7 @@ async def command_ban_add(client: Client, message: Message, force=False):
         ban_seconds = last_mute_time * 2
         mute_user[msg_user_id] = ban_seconds
     await message.delete()
-    await client.restrict_chat_member(message.chat.id, msg_user_id, ChatPermissions(can_send_messages=True), until_date=datetime.now() + timedelta(seconds=mute_seconds))
+    await client.restrict_chat_member(message.chat.id, msg_user_id, ChatPermissions(can_send_messages=False), until_date=datetime.now() + timedelta(seconds=mute_seconds))
 
 
 def bot(app):
