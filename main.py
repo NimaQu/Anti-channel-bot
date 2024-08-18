@@ -4,8 +4,8 @@ from configparser import ConfigParser
 
 from pyrogram import Client, filters
 from pyrogram.errors import ChatAdminRequired, RPCError
-from pyrogram.types import (Message)
-from pyrogram.enums import ChatType
+from pyrogram.types import (Message, ChatPermissions)
+from pyrogram.enums import ChatType, ChatMembersFilter
 
 from dbhelper import DBHelper
 from nyamediamarriot import *
@@ -15,6 +15,7 @@ botconfig.read('bot.ini', encoding='utf-8')
 default_config = {}
 logging.basicConfig(level=logging.INFO)
 db = DBHelper()
+mute_user = {}
 
 
 def init_default_config():
@@ -44,6 +45,25 @@ def get_group_config(chat_id):
         return final_config
 
 
+async def command_ban_add(client: Client, message: Message, force=False):
+    if not force:
+        administrators = []
+        async for m in client.get_chat_members(message.chat.id, filter=ChatMembersFilter.ADMINISTRATORS):
+            administrators.append(m.user.id)
+        if message.from_user.id in administrators:
+            return
+    msg_user_id = message.from_user.id
+    last_mute_time = mute_user.get(msg_user_id)
+    mute_seconds = 60
+    if last_mute_time is None:
+        mute_user[msg_user_id] = mute_seconds
+    else:
+        ban_seconds = last_mute_time * 2
+        mute_user[msg_user_id] = ban_seconds
+    await message.delete()
+    await client.restrict_chat_member(message.chat.id, msg_user_id, ChatPermissions(can_send_messages=True), until_date=datetime.now() + timedelta(seconds=mute_seconds))
+
+
 def bot(app):
     @app.on_message(filters.command("acset") & filters.group)
     async def set_config(client: Client, message: Message):
@@ -54,7 +74,9 @@ def bot(app):
             return
         chat_id = message.chat.id
         user_id = message.from_user.id
-        admins = await client.get_chat_members(chat_id, filter="administrators")
+        admins = []
+        async for m in client.get_chat_members(message.chat.id, filter=ChatMembersFilter.ADMINISTRATORS):
+            admins.append(m.user.id)
         help_message = "使用方法:\n" \
                        "/acset [配置项] [值]\n\n" \
                        "配置项:\n" \
@@ -64,12 +86,9 @@ def bot(app):
                        "`silent_mode`: 是否启用静默模式（不发送消息）1(开启) 或者 0(关闭)\n\n" \
                        "例如: \n" \
                        "`/acset operate ban`"
-        if not any([
-            admin.user.id == user_id and
-            (admin.status == "creator" or admin.can_restrict_members)
-            for admin in admins
-        ]):
+        if user_id not in admins:
             reply_message = await message.reply("您没有权限使用此命令。")
+            await command_ban_add(client, message, force=True)
             await asyncio.sleep(10)
             await reply_message.delete()
             return
@@ -103,6 +122,8 @@ def bot(app):
             await handle_reservation(client, message)
         elif '/checkout' in args[0]:
             await handle_checkout(client, message)
+        elif '/acset' in args[0]:
+            await command_ban_add(client, message)
 
     @app.on_message(filters.group)
     async def group_message(client, message):
